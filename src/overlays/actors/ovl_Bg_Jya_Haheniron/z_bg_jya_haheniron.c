@@ -100,15 +100,15 @@ void BgJyaHaheniron_SpawnFragments(GlobalContext* globalCtx, Vec3f* vec1, Vec3f*
 }
 
 void BgJyaHaheniron_Init(Actor* thisx, GlobalContext* globalCtx) {
-    BgJyaHaheniron* this = THIS;
     static f32 sHahenironScale[] = { 0.13f, 0.1f, 0.1f };
+    BgJyaHaheniron* this = THIS;
 
     Actor_ProcessInitChain(thisx, sInitChain);
     Actor_SetScale(&this->actor, sHahenironScale[this->actor.params]);
     if (this->actor.params == 0) {
         BgJyaHaheniron_ColliderInit(this, globalCtx);
 
-        thisx->shape.rot.z = (Rand_ZeroOne() * 65535.0f);
+        thisx->shape.rot.z = (Rand_ZeroOne() * 0xFFFF);
 
         BgJyaHaheniron_SetupChairCrumble(this);
     } else if (this->actor.params == 1) {
@@ -141,7 +141,7 @@ void BgJyaHaheniron_ChairCrumble(BgJyaHaheniron* this, GlobalContext* globalCtx)
         vec.y = -Rand_ZeroOne() * this->actor.velocity.y;
         vec.z = -Rand_ZeroOne() * this->actor.velocity.z;
 
-        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot, &vec);
+        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot.pos, &vec);
         Actor_Kill(&this->actor);
     } else if (this->timer >= 61) {
         Actor_Kill(&this->actor);
@@ -195,5 +195,5 @@ void BgJyaHaheniron_Draw(Actor* thisx, GlobalContext* globalCtx) {
     if (thisx->params == 0) {
         func_800628A4(0, &this->collider);
     }
-    Gfx_DrawDListOpa(globalCtx, dLists[thisx->params]);
+    Gfx_DrawDListOpa(globalCtx, dLists[this->actor.params]);
 }
