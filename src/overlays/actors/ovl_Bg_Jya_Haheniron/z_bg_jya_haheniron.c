@@ -56,12 +56,6 @@ static InitChainEntry sInitChain[] = {
     ICHAIN_F32(uncullZoneDownward, 1000, ICHAIN_STOP),
 };
 
-static f32 D_80898794[] = { 0.13f, 0.1f, 0.1f };
-
-static Vec3f D_808987A0[] = { 0.0f, 14.0f, 0.0f };
-
-static Vec3f D_808987AC[] = { 0.0f, 8.0f, 0.0f };
-
 extern Gfx D_06000880[];
 
 void BgJyaHaheniron_ColliderInit(BgJyaHaheniron* this, GlobalContext* globalCtx) {
@@ -80,12 +74,14 @@ void BgJyaHaheniron_SpawnFragments(GlobalContext* globalCtx, Vec3f* vec1, Vec3f*
     f32 rand1;
 
     for (angle = 0, i = 0; i < ARRAY_COUNT(sKakeraScales); i++) {
+
         rand1 = Rand_ZeroOne() * 10.0f;
         vel.x = (Math_SinS(angle) * rand1) + vec2->x;
         vel.y = (Rand_ZeroOne() * 10.0f) + vec2->y;
         vel.z = (Math_CosS(angle) * rand1) + vec2->z;
 
         rand1 = Rand_ZeroOne();
+
         if (rand1 < 0.2f) {
             arg5 = 96;
         } else if (rand1 < 0.8f) {
@@ -95,7 +91,7 @@ void BgJyaHaheniron_SpawnFragments(GlobalContext* globalCtx, Vec3f* vec1, Vec3f*
         }
 
         EffectSsKakera_Spawn(globalCtx, vec1, &vel, vec1, -350, arg5, 40, 4, 0, sKakeraScales[i], 0, 20, 40,
-                             KAKERA_COLOR_NONE, OBJECT_JYA_IRON, &D_06000880);
+                             KAKERA_COLOR_NONE, OBJECT_JYA_IRON, D_06000880);
         angle += 0x3333;
     }
     pos.x = vec1->x + (vec2->x * 5.0f);
@@ -105,14 +101,16 @@ void BgJyaHaheniron_SpawnFragments(GlobalContext* globalCtx, Vec3f* vec1, Vec3f*
 }
 
 void BgJyaHaheniron_Init(Actor* thisx, GlobalContext* globalCtx) {
-    s32 pad;
+    static f32 sHahenironScale[] = { 0.13f, 0.1f, 0.1f };
     BgJyaHaheniron* this = THIS;
 
-    Actor_ProcessInitChain(&this->actor, sInitChain);
-    Actor_SetScale(&this->actor, D_80898794[this->actor.params]);
+    Actor_ProcessInitChain(thisx, sInitChain);
+    Actor_SetScale(&this->actor, sHahenironScale[this->actor.params]);
     if (this->actor.params == 0) {
         BgJyaHaheniron_ColliderInit(this, globalCtx);
-        this->actor.shape.rot.z = (Rand_ZeroOne() * 65535.0f);
+
+        thisx->shape.rot.z = (Rand_ZeroOne() * 0xFFFF);
+
         BgJyaHaheniron_SetupChairCrumble(this);
     } else if (this->actor.params == 1) {
         BgJyaHaheniron_SetupPillarCrumble(this);
@@ -122,11 +120,9 @@ void BgJyaHaheniron_Init(Actor* thisx, GlobalContext* globalCtx) {
 }
 
 void BgJyaHaheniron_Destroy(Actor* thisx, GlobalContext* globalCtx) {
-    s32 pad;
     BgJyaHaheniron* this = THIS;
-
     if (this->actor.params == 0) {
-        Collider_DestroyJntSph(globalCtx, &this->collider);
+        Collider_DestroyJntSph(globalCtx, &THIS->collider);
     }
 }
 
@@ -139,17 +135,19 @@ void BgJyaHaheniron_ChairCrumble(BgJyaHaheniron* this, GlobalContext* globalCtx)
 
     Actor_MoveForward(&this->actor);
     func_8002E4B4(globalCtx, &this->actor, 5.0f, 8.0f, 0.0f, 0x85);
-    if ((this->actor.bgCheckFlags & 9) || ((this->collider.base.atFlags & 2) && (this->collider.base.at != NULL) &&
-                                           (this->collider.base.at->type == ACTORTYPE_PLAYER))) {
+    if ((this->actor.bgCheckFlags & 9) ||
+        ((this->collider.base.atFlags & 2) && (this->collider.base.at) && (this->collider.base.at->type == 2))) {
+
         vec.x = -Rand_ZeroOne() * this->actor.velocity.x;
         vec.y = -Rand_ZeroOne() * this->actor.velocity.y;
         vec.z = -Rand_ZeroOne() * this->actor.velocity.z;
-        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot, &vec);
+
+        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot.pos, &vec);
         Actor_Kill(&this->actor);
     } else if (this->timer > 60) {
         Actor_Kill(&this->actor);
     } else {
-        CollisionCheck_SetAT(globalCtx, &globalCtx->colChkCtx, &this->collider);
+        CollisionCheck_SetAT(globalCtx, &globalCtx->colChkCtx, &this->collider.base);
     }
     this->actor.shape.rot.y += 0x4B0;
     this->actor.shape.rot.x += 0xFA0;
@@ -160,10 +158,12 @@ void BgJyaHaheniron_SetupPillarCrumble(BgJyaHaheniron* this) {
 }
 
 void BgJyaHaheniron_PillarCrumble(BgJyaHaheniron* this, GlobalContext* globalCtx) {
+    static Vec3f D_808987A0[] = { 0.0f, 14.0f, 0.0f };
+
     if (this->timer >= 8) {
         Actor_MoveForward(&this->actor);
     } else if (this->timer >= 17) {
-        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot, D_808987A0);
+        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot.pos, D_808987A0);
         Actor_Kill(&this->actor);
     }
     this->actor.shape.rot.y += 0x258;
@@ -175,9 +175,10 @@ void BgJyaHaheniron_SetupRubbleCollide(BgJyaHaheniron* this) {
 }
 
 void BgJyaHaheniron_RubbleCollide(BgJyaHaheniron* this, GlobalContext* globalCtx) {
+    static Vec3f D_808987AC[] = { 0.0f, 8.0f, 0.0f };
     if (this->timer >= 17) {
-        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot, D_808987AC);
-        Audio_PlaySoundAtPosition(globalCtx, &this->actor.posRot, 80, NA_SE_EN_IRONNACK_BREAK_PILLAR2);
+        BgJyaHaheniron_SpawnFragments(globalCtx, &this->actor.posRot.pos, D_808987AC);
+        Audio_PlaySoundAtPosition(globalCtx, &this->actor.posRot.pos, 80, NA_SE_EN_IRONNACK_BREAK_PILLAR2);
         Actor_Kill(&this->actor);
     }
 }
